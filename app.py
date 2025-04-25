@@ -1,43 +1,27 @@
 import streamlit as st
-from openai import OpenAI
-import os
+from transformers import pipeline
 
-# Set up OpenAI client with API key from Streamlit secrets
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# Load the model (cached for fast responses)
+@st.cache_resource
+def load_model():
+    return pipeline("text-generation", model="microsoft/DialoGPT-medium")
 
-# Load prompt template
-with open("prompt_template.txt", "r") as f:
-    template = f.read()
+generator = load_model()
 
-# Streamlit UI config
 st.set_page_config(page_title="Your Own Interview Copilot", layout="centered")
+
 st.title("🧠 Your Own Interview Copilot")
 st.write("Type any interview question and get a smart answer based on your profile.")
 
-# User input
 question = st.text_area("Enter your interview question:")
 
 if st.button("Generate Answer"):
     if not question.strip():
         st.warning("Please enter a question.")
     else:
-        prompt = template.replace("{question}", question)
-
         with st.spinner("Generating answer..."):
-            try:
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": "You are a helpful AI interview coach."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.7,
-                    max_tokens=500
-                )
-                answer = response.choices[0].message.content
-                st.success("Answer generated!")
-                st.text_area("AI Response:", value=answer, height=300)
-                st.download_button("💾 Save Answer", data=answer, file_name="interview_answer.txt")
-
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
+            response = generator(question, max_length=150, num_return_sequences=1)
+            answer = response[0]['generated_text']
+            st.success("Answer generated!")
+            st.text_area("AI Response:", value=answer, height=300)
+            st.download_button("💾 Save Answer", data=answer, file_name="interview_answer.txt")
