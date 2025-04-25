@@ -1,9 +1,9 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import os
 
-# Load API key from Streamlit secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# Create OpenAI client using API key from Streamlit secrets
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # Load prompt template
 with open("prompt_template.txt", "r") as f:
@@ -22,7 +22,7 @@ if st.button("Generate Answer"):
     else:
         prompt = template.replace("{question}", question)
         with st.spinner("Generating answer..."):
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a helpful AI interview coach."},
@@ -31,7 +31,7 @@ if st.button("Generate Answer"):
                 temperature=0.7,
                 max_tokens=500
             )
-            answer = response['choices'][0]['message']['content']
+            answer = response.choices[0].message.content
             st.success("Answer generated!")
             st.text_area("AI Response:", value=answer, height=300)
             st.download_button("💾 Save Answer", data=answer, file_name="interview_answer.txt")
