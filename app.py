@@ -1,35 +1,32 @@
 import streamlit as st
-import openai
+from openai import OpenAI
+import os
 
-# Load API key securely from Streamlit secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# Set up OpenAI client with API key from Streamlit secrets
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# Load the prompt template from file
+# Load prompt template
 with open("prompt_template.txt", "r") as f:
     template = f.read()
 
-# Set Streamlit page configuration
+# Streamlit UI config
 st.set_page_config(page_title="Your Own Interview Copilot", layout="centered")
-
-# UI layout
 st.title("🧠 Your Own Interview Copilot")
 st.write("Type any interview question and get a smart answer based on your profile.")
 
-# Input box for user question
+# User input
 question = st.text_area("Enter your interview question:")
 
-# When button is clicked
 if st.button("Generate Answer"):
     if not question.strip():
         st.warning("Please enter a question.")
     else:
-        # Prepare the prompt
         prompt = template.replace("{question}", question)
 
         with st.spinner("Generating answer..."):
             try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",  # use gpt-4 if your key supports it
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": "You are a helpful AI interview coach."},
                         {"role": "user", "content": prompt}
@@ -37,7 +34,7 @@ if st.button("Generate Answer"):
                     temperature=0.7,
                     max_tokens=500
                 )
-                answer = response['choices'][0]['message']['content']
+                answer = response.choices[0].message.content
                 st.success("Answer generated!")
                 st.text_area("AI Response:", value=answer, height=300)
                 st.download_button("💾 Save Answer", data=answer, file_name="interview_answer.txt")
