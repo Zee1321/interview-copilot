@@ -1,6 +1,5 @@
 import streamlit as st
 import openai
-from dotenv import load_dotenv
 import os
 
 # Load API key from Streamlit secrets
