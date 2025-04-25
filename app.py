@@ -1,50 +1,42 @@
 import streamlit as st
 import requests
 
-# Page setup
-st.set_page_config(page_title="Your Own Interview Copilot", layout="centered")
+st.set_page_config(page_title="🧠 Your Own Interview Copilot")
 
 st.title("🧠 Your Own Interview Copilot")
-st.write("Type any technical interview question and get a smart, real-world answer powered by the Mistral AI model.")
+st.write("Type any interview question and get a smart answer based on your profile.")
 
-# Input box
-question = st.text_area("Enter your interview question:")
+question = st.text_input("Enter your interview question:")
 
-# OpenRouter API query function
-def query(payload):
-    headers = {
-        "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
-        "Content-Type": "application/json"
-    }
-    try:
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=payload
-        )
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        return {"error": str(e)}
-
-# Generate Answer button
-if st.button("Generate Answer") and question.strip():
+if st.button("Generate Answer") and question:
     with st.spinner("Generating answer..."):
-        payload = {
-            "model": "mistralai/mistral-7b-instruct",
+
+        headers = {
+            "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://your-app-name.streamlit.app",  # 🔁 replace with your actual app URL
+            "X-Title": "Your Own Interview Copilot"
+        }
+
+        body = {
+            "model": "mistral-7b-instruct",  # You can also try: "mixtral-8x7b", "openchat", etc.
             "messages": [
-                {"role": "system", "content": "You are a helpful senior network engineer who answers technical interview questions in a clear and concise manner."},
+                {"role": "system", "content": "You are a helpful AI trained to answer technical interview questions like a senior network engineer."},
                 {"role": "user", "content": question}
             ]
         }
-        output = query(payload)
 
-        # Safely extract and display the response
-        if "choices" in output and len(output["choices"]) > 0:
-            answer = output["choices"][0]["message"]["content"]
+        try:
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=body
+            )
+            response.raise_for_status()
+            output = response.json()
             st.success("Answer generated!")
-            st.text_area("AI Response:", value=answer, height=300)
-            st.download_button("💾 Save Answer", data=answer, file_name="interview_answer.txt")
-        else:
+            st.write(output['choices'][0]['message']['content'])
+
+        except Exception as e:
             st.error("Something went wrong.")
-            st.json(output)
+            st.json({"error": str(e)})
